@@ -77,3 +77,23 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+.markdown h2, .markdown h3 {
+  margin-top: 1rem;
+  color: #333;
+}
+.markdown pre {
+  background: #f4f4f4;
+  padding: 1rem;
+  overflow-x: auto;
+  font-size: 0.9rem;
+}
+.markdown code {
+  font-family: monospace;
+  background: #f0f0f0;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+.markdown ul {
+  margin-left: 1.5rem;
+}

@@ -1,47 +1,68 @@
 <script>
-  import svelteLogo from './assets/svelte.svg'
-  import viteLogo from '/vite.svg'
-  import Counter from './lib/Counter.svelte'
+  import { API_BASE_URL } from "./constants/api";
+  import { marked } from "marked";
+
+  let errorLog = "";
+  let response = "";
+  let responseHtml = "";
+  let loading = false;
+
+  async function handleSubmit() {
+    loading = true;
+    response = "";
+    responseHtml = "";
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/explain`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ error_log: errorLog }),
+      });
+
+      const data = await res.json();
+      response = data.response || 'No explanation returned.';
+      responseHtml = await marked.parse(response);
+    } catch (err) {
+      response = "Error connecting to server.";
+      responseHtml = "";
+    } finally {
+      loading = false;
+    }
+  }
+
+  const PING_INTERVAL_MS = 10 * 60 * 1000;
+  setInterval(() => {
+    fetch(`${API_BASE_URL}/ping`)
+      .then(() => console.log("Pinged backend to keep it warm"))
+      .catch(() => console.warn("Ping failed (backend may be down)"));
+  }, PING_INTERVAL_MS);
 </script>
 
-<main>
-  <div>
-    <a href="https://vite.dev" target="_blank" rel="noreferrer">
-      <img src={viteLogo} class="logo" alt="Vite Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank" rel="noreferrer">
-      <img src={svelteLogo} class="logo svelte" alt="Svelte Logo" />
-    </a>
-  </div>
-  <h1>Vite + Svelte</h1>
+<main
+  style="font-family: sans-serif; padding: 2rem; max-width: 800px; margin: auto;"
+>
+  <h1>🛠️ AI Debug Assistant</h1>
 
-  <div class="card">
-    <Counter />
-  </div>
+  <form on:submit|preventDefault={handleSubmit}>
+    <textarea
+      rows="6"
+      placeholder="Paste your error message here..."
+      bind:value={errorLog}
+      required
+      style="width: 100%; margin-bottom: 1rem;"
+    ></textarea>
+    <button type="submit" disabled={loading}>
+      {loading ? "Thinking..." : "Explain Error"}
+    </button>
+  </form>
 
-  <p>
-    Check out <a href="https://github.com/sveltejs/kit#readme" target="_blank" rel="noreferrer">SvelteKit</a>, the official Svelte app framework powered by Vite!
-  </p>
-
-  <p class="read-the-docs">
-    Click on the Vite and Svelte logos to learn more
-  </p>
+  {#if response}
+    <div style="margin-top: 2rem; white-space: pre-wrap;">
+      <h3>💡 Explanation & Fix:</h3>
+      <p>{response}</p>
+      <button on:click={() => navigator.clipboard.writeText(response)}>
+        📋 Copy
+      </button>
+    </div>
+  {/if}
 </main>
-
-<style>
-  .logo {
-    height: 6em;
-    padding: 1.5em;
-    will-change: filter;
-    transition: filter 300ms;
-  }
-  .logo:hover {
-    filter: drop-shadow(0 0 2em #646cffaa);
-  }
-  .logo.svelte:hover {
-    filter: drop-shadow(0 0 2em #ff3e00aa);
-  }
-  .read-the-docs {
-    color: #888;
-  }
-</style>
