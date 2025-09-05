@@ -21,19 +21,47 @@
       });
 
       const data = await res.json();
-      try {
-        const parsed = typeof data.response === 'string' ? JSON.parse(data.response) : data.response;
-        response = `### 💡 Explanation\n${parsed.explanation}\n\n### 🛠️ Suggested Fix\n${parsed.suggested_fix}`;
-        if (parsed.suggested_external_links && Array.isArray(parsed.suggested_external_links)) {
-          response += `\n\n### 🔗 External Links\n<div class="external-links">\n${parsed.suggested_external_links
-            .map(link => `<a class="external-link-card" href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`)
-            .join("")}\n</div>`;
+
+      // Handle both old shape ({response: "json string"}) and new shape ({explanation: ...})
+      const raw = data?.response ?? data;
+      let parsed = null;
+
+      if (typeof raw === "string") {
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          parsed = null;
         }
-        responseHtml = await marked.parse(response);
-      } catch (e) {
+      } else if (raw && typeof raw === "object") {
+        parsed = raw;
+      }
+
+      if (!parsed || typeof parsed !== "object") {
         response = "Invalid Response.";
         responseHtml = await marked.parse(response);
+        return;
       }
+
+      // Build response text
+      response = `### 💡 Explanation
+${parsed.explanation || "No explanation provided."}
+
+### 🛠️ Suggested Fix
+${parsed.suggested_fix || "No fix provided."}`;
+
+      if (Array.isArray(parsed.suggested_external_links) && parsed.suggested_external_links.length) {
+        response += `
+
+### 🔗 External Links
+<div class="external-links">
+${parsed.suggested_external_links
+  .map(link => `<a class="external-link-card" href="${link}" target="_blank" rel="noopener noreferrer">${link}</a>`)
+  .join("")}
+</div>`;
+      }
+
+      responseHtml = await marked.parse(response);
+
     } catch (err) {
       response = "Error connecting to server.";
       responseHtml = "";
